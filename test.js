@@ -23,9 +23,13 @@ function generateFormData(obj) {
   return formData;
 }
 
+// Add x/1 x/2 etc for duplicate form items
 const formDataAssertions = [
   // One option, single
-  [{ "AddDevice.host": "/dev/device" }, { AddDevice: [{ host: "/dev/device" }] }],
+  [
+    { "AddDevice.host": "/dev/device" },
+    { AddDevice: [{ host: "/dev/device" }] },
+  ],
   // One option, multiple
   [
     { "AddDevice.host": "/dev/device", "AddDevice.container": "/dev/device" },
@@ -67,7 +71,10 @@ const formDataAssertions = [
       "AddDevice.host/2": "/dev/device",
     },
     {
-      AddDevice: [{ host: "/dev/device", container: "/dev/device" }, { host: "/dev/device" }],
+      AddDevice: [
+        { host: "/dev/device", container: "/dev/device" },
+        { host: "/dev/device" },
+      ],
     },
   ],
   // Array, single, one field
@@ -101,7 +108,9 @@ const formDataAssertions = [
       "AddCapability.dummy": "dummy",
     },
     {
-      AddCapability: [{ options: ["CAP_NET_BIND_SERVICE", "CAP_SYSLOG"], dummy: "dummy" }],
+      AddCapability: [
+        { options: ["CAP_NET_BIND_SERVICE", "CAP_SYSLOG"], dummy: "dummy" },
+      ],
     },
   ],
   // Array, overlapping index, one field
@@ -111,7 +120,10 @@ const formDataAssertions = [
       "AddCapability.options[0]/2": "CAP_SYSLOG",
     },
     {
-      AddCapability: [{ options: ["CAP_NET_BIND_SERVICE"] }, { options: ["CAP_SYSLOG"] }],
+      AddCapability: [
+        { options: ["CAP_NET_BIND_SERVICE"] },
+        { options: ["CAP_SYSLOG"] },
+      ],
     },
   ],
   // Array, overlapping index, multiple fields
@@ -168,6 +180,71 @@ const formDataAssertions = [
       AddDevice: [{ host: "/dev/device" }],
     },
   ],
+  // Boolean (false), one option
+  [
+    {
+      "AddDevice.ifExists.boolean": "false",
+    },
+    { AddDevice: [{ ifExists: false }] },
+  ],
+  // Boolean (true), one option
+  [
+    {
+      "AddDevice.ifExists.boolean": "false",
+      "AddDevice.ifExists.boolean": "true",
+    },
+    { AddDevice: [{ ifExists: true }] },
+  ],
+  // Boolean (false), double false
+  [
+    {
+      "AddDevice.ifExists.boolean/1": "false",
+      "AddDevice.ifExists.boolean/2": "false",
+    },
+    { AddDevice: [{ ifExists: false }, { ifExists: false }] },
+  ],
+  // Boolean (false), different fields
+  [
+    {
+      "AddDevice.ifExists.boolean": "false",
+      "AddDevice.host": "/dev/device",
+    },
+    { AddDevice: [{ ifExists: false, host: "/dev/device" }] },
+  ],
+  // Boolean (true), different fields
+  [
+    {
+      "AddDevice.ifExists.boolean": "false",
+      "AddDevice.ifExists.boolean": "true",
+      "AddDevice.host": "/dev/device",
+    },
+    { AddDevice: [{ ifExists: true, host: "/dev/device" }] },
+  ],
+  // Boolean (false), different options
+  [
+    {
+      "AddDevice.ifExists.boolean": "false",
+      "AddHost.hostname": "example.com",
+      "AddHost.ip": "192.168.1.0",
+    },
+    {
+      AddDevice: [{ ifExists: false }],
+      AddHost: [{ hostname: "example.com", ip: "192.168.1.0" }],
+    },
+  ],
+  // Boolean (true), different options
+  [
+    {
+      "AddDevice.ifExists.boolean": "false",
+      "AddDevice.ifExists.boolean": "true",
+      "AddHost.hostname": "example.com",
+      "AddHost.ip": "192.168.1.0",
+    },
+    {
+      AddDevice: [{ ifExists: true }],
+      AddHost: [{ hostname: "example.com", ip: "192.168.1.0" }],
+    },
+  ],
   // Ignore submit option
   [
     {
@@ -178,27 +255,41 @@ const formDataAssertions = [
 ];
 
 const assertions = [
+  [Format.boolean({ value: true }), "true"],
+  [Format.boolean({ value: false }), "false"],
   [Format.sepSpace({ values: ["A"] }), "A"],
   [Format.sepSpace({ values: ["A", "B"] }), "A B"],
-  [Format.mapping({ host: "/dev/device" }), "/dev/device"],
-  [Format.mapping({ host: "/dev/device", container: "/dev/device" }), "/dev/device:/dev/device"],
+  [Format.mapping({ host: "/dev/host" }), "/dev/host"],
+  [
+    Format.mapping({ host: "/dev/host", container: "/dev/container" }),
+    "/dev/host:/dev/container",
+  ],
   [
     Format.mapping({
-      host: "/dev/device",
-      container: "/dev/device",
+      host: "/dev/host",
+      container: "/dev/container",
       permissions: ["r", "w", "m"],
     }),
-    "/dev/device:/dev/device:rwm",
+    "/dev/host:/dev/container:rwm",
   ],
-  [Format.mapping({ host: "/dev/device", permissions: ["r", "w", "m"] }), "/dev/device:rwm"],
-  [Format.mapping({ host: "/dev/device", permissions: ["r", "w", "r"] }), "/dev/device:rw"],
+  [
+    Format.mapping({ host: "/dev/host", permissions: ["r", "w", "m"] }),
+    "/dev/host:rwm",
+  ],
+  [
+    Format.mapping({ host: "/dev/host", permissions: ["r", "w", "r"] }),
+    "/dev/host:rw",
+  ],
   [Format.pair({ values: { A: "B" } }), "A=B"],
   [Format.pair({ values: { A: "B", C: "D" } }), "A=B C=D"],
   [Format.pair({ values: { A: "B C" } }), '"A=B C"'],
   [Format.pair({ values: { A: "B C", D: "E" } }), '"A=B C" D=E'],
 
   // One field, arg false
-  [generatePairs({ AutoUpdate: [{ value: "registry" }] }), [["AutoUpdate", "registry"]]],
+  [
+    generatePairs({ AutoUpdate: [{ value: "registry" }] }),
+    [["AutoUpdate", "registry"]],
+  ],
   // Multiple fields, arg false
   [
     generatePairs({
@@ -211,14 +302,20 @@ const assertions = [
     ],
   ],
   // Arg true, default format
-  [generatePairs({ AddDevice: [{ host: "/dev/device" }] }, true), [["device", "/dev/device"]]],
+  [
+    generatePairs({ AddDevice: [{ host: "/dev/device" }] }, true),
+    [["device", "/dev/device"]],
+  ],
   // Arg true, non-default argFormat
   [
     generatePairs({ AutoUpdate: [{ value: "registry" }] }, true),
     [["label", "io.containers.autoupdate=registry"]],
   ],
   // Arg false, seperable field
-  [generatePairs({ Annotation: [{ values: { A: "B", C: "D" } }] }), [["Annotation", "A=B C=D"]]],
+  [
+    generatePairs({ Annotation: [{ values: { A: "B", C: "D" } }] }),
+    [["Annotation", "A=B C=D"]],
+  ],
   // Arg true, seperable field
   [
     generatePairs({ Annotation: [{ values: { A: "B", C: "D" } }] }, true),
@@ -243,7 +340,10 @@ function assert([key, value]) {
 }
 
 function assertType(key, value) {
-  console.assert(typeof key === value, `typeof ${JSON.stringify(key)} !== ${value}`);
+  console.assert(
+    typeof key === value,
+    `typeof ${JSON.stringify(key)} !== ${value}`
+  );
 }
 
 function testOptions() {
@@ -254,7 +354,9 @@ function testOptions() {
     if ("argFormat" in option) assertType(option.argFormat, "function");
     console.assert(
       Array.isArray(option.params),
-      `Array.isArray(option.params (${JSON.stringify(option.params)})) === false`
+      `Array.isArray(option.params (${JSON.stringify(
+        option.params
+      )})) === false`
     );
 
     for (const param of option.params) {
@@ -274,7 +376,9 @@ function testOptions() {
         // select needs options
         console.assert(
           "options" in param && param.options != null,
-          `param.type (${param.type}) === select && param.options (${JSON.stringify(
+          `param.type (${
+            param.type
+          }) === select && param.options (${JSON.stringify(
             param.options
           )}) === undefined | null`
         );
@@ -341,7 +445,9 @@ function testOptions() {
               `typeof param.placeholder (${param.placeholder}) === object && param.placeholder.length (${param.placeholder.length}) !== 2`
             );
             // both have to be strings
-            param.placeholder.forEach((placeholder) => assertType(placeholder, "string"));
+            param.placeholder.forEach((placeholder) =>
+              assertType(placeholder, "string")
+            );
             break;
           default:
             console.error(

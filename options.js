@@ -4,6 +4,15 @@
 class Format {
   /**
    * @param {Object} param0
+   * @param {boolean} param0.value
+   * @returns {"true" | "false"}
+   */
+  static boolean({ value }) {
+    return value ? "true" : "false";
+  }
+
+  /**
+   * @param {Object} param0
    * @param {string[]} param0.values
    * @returns {string}
    */
@@ -14,16 +23,17 @@ class Format {
   /**
    * @param {Object} param0
    * @param {string} param0.host
-   * @param {string} [param0.container]
+   * @param {string} param0.container
    * @param {string[]} param0.permissions
+   * @param {boolean} param0.ifExists
    * @returns {string}
    */
-  static mapping({ host, container = null, permissions = [], ifExists = false }) {
+  static mapping({ host, container = "", permissions = [], ifExists = false }) {
     // Remove duplicates
     permissions = [...new Set(permissions)];
 
     permissions = permissions.length > 0 ? `:${permissions.join("")}` : "";
-    container = container !== null ? `:${container}` : "";
+    container = container ? `:${container}` : "";
     return `${ifExists ? "-" : ""}${host}${container}${permissions}`;
   }
 
@@ -33,10 +43,61 @@ class Format {
    */
   static pair({ values }) {
     return Object.entries(values)
-      .map(([key, value]) => (value.includes(" ") ? `"${key}=${value}"` : `${key}=${value}`))
+      .map(([key, value]) =>
+        value.includes(" ") ? `"${key}=${value}"` : `${key}=${value}`
+      )
       .join(" ");
   }
 }
+
+const capabilities = [
+  "CAP_AUDIT_CONTROL",
+  "CAP_AUDIT_READ",
+  "CAP_AUDIT_WRITE",
+  "CAP_BLOCK_SUSPEND",
+  "CAP_BPF",
+  "CAP_CHECKPOINT_RESTORE",
+  "CAP_SYS_ADMIN",
+  "CAP_CHOWN",
+  "CAP_DAC_OVERRIDE",
+  "CAP_DAC_READ_SEARCH",
+  "CAP_FOWNER",
+  "CAP_DAC_READ_SEARCH",
+  "CAP_FSETID",
+  "CAP_IPC_LOCK",
+  "CAP_IPC_OWNER",
+  "CAP_KILL",
+  "CAP_LEASE",
+  "CAP_LINUX_IMMUTABLE",
+  "CAP_MAC_ADMIN",
+  "CAP_MAC_OVERRIDE",
+  "CAP_MKNOD",
+  "CAP_NET_ADMIN",
+  "CAP_NET_BIND_SERVICE",
+  "CAP_NET_BROADCAST",
+  "CAP_NET_RAW",
+  "CAP_PERFMON",
+  "CAP_SYS_ADMIN",
+  "CAP_SETGID",
+  "CAP_SETFCAP",
+  "CAP_SETPCAP",
+  "CAP_SETPCAP",
+  "CAP_SETUID",
+  "CAP_SYS_ADMIN",
+  "CAP_BPF",
+  "CAP_SYS_BOOT",
+  "CAP_SYS_CHROOT",
+  "CAP_SYS_MODULE",
+  "CAP_SYS_NICE",
+  "CAP_SYS_PACCT",
+  "CAP_SYS_PTRACE",
+  "CAP_SYS_RAWIO",
+  "CAP_SYS_RESOURCE",
+  "CAP_SYS_TIME",
+  "CAP_SYS_TTY_CONFIG",
+  "CAP_SYSLOG",
+  "CAP_WAKE_ALARM",
+];
 
 /*
 -- options
@@ -61,7 +122,10 @@ param:
   placeholder?: string (type=path|string), string[] (type=pair)
   isArray?: bool
   isOptional?: bool (always ignored (true) when type=boolean)
-  condition?: function(option) (return false to disable input)
+  condition?: function(options) (return false to disable input)
+    type of options is return value from parseFormData()
+    Always use optional chaining (opts?.opt?.func) 
+    when referencing other options
 
   when type === select:
   -> options: option[] | object<name, option>
@@ -78,54 +142,7 @@ const options = {
           name: "Capabilities",
           type: "select",
           isArray: true,
-          options: [
-            "CAP_AUDIT_CONTROL",
-            "CAP_AUDIT_READ",
-            "CAP_AUDIT_WRITE",
-            "CAP_BLOCK_SUSPEND",
-            "CAP_BPF",
-            "CAP_CHECKPOINT_RESTORE",
-            "CAP_SYS_ADMIN",
-            "CAP_CHOWN",
-            "CAP_DAC_OVERRIDE",
-            "CAP_DAC_READ_SEARCH",
-            "CAP_FOWNER",
-            "CAP_DAC_READ_SEARCH",
-            "CAP_FSETID",
-            "CAP_IPC_LOCK",
-            "CAP_IPC_OWNER",
-            "CAP_KILL",
-            "CAP_LEASE",
-            "CAP_LINUX_IMMUTABLE",
-            "CAP_MAC_ADMIN",
-            "CAP_MAC_OVERRIDE",
-            "CAP_MKNOD",
-            "CAP_NET_ADMIN",
-            "CAP_NET_BIND_SERVICE",
-            "CAP_NET_BROADCAST",
-            "CAP_NET_RAW",
-            "CAP_PERFMON",
-            "CAP_SYS_ADMIN",
-            "CAP_SETGID",
-            "CAP_SETFCAP",
-            "CAP_SETPCAP",
-            "CAP_SETPCAP",
-            "CAP_SETUID",
-            "CAP_SYS_ADMIN",
-            "CAP_BPF",
-            "CAP_SYS_BOOT",
-            "CAP_SYS_CHROOT",
-            "CAP_SYS_MODULE",
-            "CAP_SYS_NICE",
-            "CAP_SYS_PACCT",
-            "CAP_SYS_PTRACE",
-            "CAP_SYS_RAWIO",
-            "CAP_SYS_RESOURCE",
-            "CAP_SYS_TIME",
-            "CAP_SYS_TTY_CONFIG",
-            "CAP_SYSLOG",
-            "CAP_WAKE_ALARM",
-          ],
+          options: capabilities,
         },
       ],
     },
@@ -165,13 +182,15 @@ const options = {
     AddHost: {
       arg: "add-host",
       allowMultiple: true,
-      format: ({ hostname, ip }) => `${hostname}:${ip}`,
+      format: ({ hostnames, ip }) => `${hostnames.join(";")}:${ip}`,
       params: [
+        // Conflicts with --no-hosts
         {
-          param: "hostname",
-          name: "Hostname",
+          param: "hostnames",
+          name: "Hostname(s)",
           type: "string",
           placeholder: "example.com",
+          isArray: true,
         },
         {
           param: "ip",
@@ -216,6 +235,8 @@ const options = {
           type: "select",
           default: "split",
           options: ["enabled", "split", "no-conmon", "disabled"],
+          // disabled conflicts with cgroupsns and cgroup-parent
+          // split conlicts with cgroup-parent
         },
       ],
     },
@@ -236,7 +257,7 @@ const options = {
       params: [
         {
           param: "value",
-          name: "Path",
+          name: "File path",
           type: "path",
           placeholder: "containers.conf",
         },
@@ -251,14 +272,16 @@ const options = {
           name: "IP Address",
           type: "string",
           placeholder: "192.168.0.1",
+          // conflicts with network=none or network=container:id
         },
       ],
     },
     DNSOption: {
       arg: "dns-option",
       allowMultiple: true,
-      format: ([option, value]) => (option + value ? `:${value}` : ""),
+      format: ({ option, value }) => option + (value ? `:${value}` : ""),
       params: [
+        // conflicts with network=none or network=container:id
         {
           param: "option",
           name: "Option",
@@ -289,28 +312,89 @@ const options = {
           name: "Value",
           type: "string",
           isOptional: true,
-          condition: (option) => ["ndots", "timeout", "attempts"].includes(option.option),
+          placeholder: "number",
+          condition: (opts) =>
+            opts.DNSOption.some((opt) =>
+              ["ndots", "timeout", "attempts"].includes(opt.option)
+            ),
         },
       ],
     },
-    // DNSSearch: {
-    //   arg: "dns-search",
-    // },
-    // DropCapability: {
-    //   arg: "cap-drop",
-    // },
-    // Entrypoint: {
-    //   arg: "entrypoint",
-    // },
-    // Environment: {
-    //   arg: "env",
-    // },
-    // EnvironmentFile: {
-    //   arg: "env-file",
-    // },
-    // EnvironmentHost: {
-    //   arg: "env-host",
-    // },
+    DNSSearch: {
+      arg: "dns-search",
+      allowMultiple: true,
+      params: [
+        {
+          // conflicts with network=none or network=container:id
+          param: "value",
+          name: "Domain",
+          type: "string",
+          placeholder: "example.com",
+        },
+      ],
+    },
+    DropCapability: {
+      arg: "cap-drop",
+      allowMultiple: true,
+      format: Format.sepSpace,
+      params: [
+        {
+          param: "values",
+          name: "Capabilities",
+          type: "select",
+          isArray: true,
+          options: ["all", ...capabilities],
+        },
+      ],
+    },
+    Entrypoint: {
+      arg: "entrypoint",
+      format: ({ values }) =>
+        values.length > 0 ? JSON.stringify(values) : values[0],
+      params: [
+        {
+          param: "values",
+          name: "Command",
+          type: "string",
+          isArray: true,
+        },
+      ],
+    },
+    Environment: {
+      arg: "env",
+      format: Format.pair,
+      params: [
+        {
+          param: "values",
+          name: "Variables",
+          type: "pair",
+          placeholder: ["VAR1", "value"],
+          isArray: true,
+        },
+      ],
+    },
+    EnvironmentFile: {
+      arg: "env-file",
+      params: [
+        {
+          param: "value",
+          name: "File path",
+          type: "path",
+          placeholder: "/tmp/env",
+        },
+      ],
+    },
+    EnvironmentHost: {
+      arg: "env-host",
+      format: Format.boolean,
+      params: [
+        {
+          param: "value",
+          name: "Use host environment",
+          type: "boolean",
+        },
+      ],
+    },
     Exec: {
       arg: "exec", // no arg, placed after image
       params: [
@@ -322,9 +406,26 @@ const options = {
         },
       ],
     },
-    // ExposeHostPort: {
-    //   arg: "expose",
-    // },
+    ExposeHostPort: {
+      arg: "expose",
+      format: ({ port, protocol }) => `${port}/${protocol}`,
+      params: [
+        {
+          param: "port",
+          type: "string",
+          name: "Port",
+          placeholder: "e.g. 50-59",
+        },
+        {
+          // Required because the default is misleading
+          param: "protocol",
+          type: "select",
+          name: "Protocol",
+          default: "tcp",
+          options: ["tcp", "udp", "sctp"],
+        },
+      ],
+    },
     // GIDMap: {
     //   arg: "gidmap",
     // },

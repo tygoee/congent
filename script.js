@@ -1,5 +1,9 @@
 "use strict";
 
+// { option: { param1: [HTMLInputElement | HTMLSelectElement], param2: [] } }
+/** @type {Object.<string, Array.<HTMLInputElement | HTMLSelectElement>>} */
+const conditions = {};
+
 /**
  * @param {HTMLFieldSetElement} element
  * @param {string} option
@@ -52,7 +56,9 @@ function addSelect(element, option, param, attributes = {}) {
   }
 
   const optionsIsArray = Array.isArray(param.options);
-  for (const opt of optionsIsArray ? param.options : Object.keys(param.options)) {
+  for (const opt of optionsIsArray
+    ? param.options
+    : Object.keys(param.options)) {
     const option = document.createElement("option");
     option.value = opt;
     option.selected = param.default === opt;
@@ -72,15 +78,24 @@ function addSelect(element, option, param, attributes = {}) {
  * @returns {HTMLInputElement}
  */
 function addBoolean(element, option, param, attributes = {}) {
+  // Hidden input for formdata (so it doesn't omit when false)
+  const hiddenInput = document.createElement("input");
+  hiddenInput.type = "hidden";
+  hiddenInput.name = `${option}.${param.param}.boolean`;
+  hiddenInput.value = "false";
+  hiddenInput.checked = true;
+
   const input = document.createElement("input");
-  input.className = "value";
-  input.name = `${option}.${param.param}`;
   input.type = "checkbox";
+  input.className = "value";
+  input.name = `${option}.${param.param}.boolean`;
+  input.value = "true";
   input.checked = param.default;
   for (const [name, value] of Object.entries(attributes)) {
     input[name] = value;
   }
 
+  element.appendChild(hiddenInput);
   element.appendChild(input);
   return input;
 }
@@ -111,7 +126,8 @@ function addPair(element, option, param, attributes = {}) {
   value.className = "value";
   value.name = `${option}.${param.param}.values[${element.childElementCount}]`;
   value.required = !param.isOptional;
-  if (Array.isArray(param.placeholder)) value.placeholder = param.placeholder[1];
+  if (Array.isArray(param.placeholder))
+    value.placeholder = param.placeholder[1];
 
   for (const [name, attrValue] of Object.entries(attributes)) {
     key[name] = attrValue;
@@ -126,28 +142,32 @@ function addPair(element, option, param, attributes = {}) {
 }
 
 /**
- * @param {string} option
- * @param {HTMLFieldSetElement} fieldset
- * @param {Object.<string, Array.<HTMLInputElement | HTMLSelectElement>>} conditionParams
+ * @param {HTMLFieldSetElement?} fieldset
  * @returns {void}
  */
-function updateConditional(option, fieldset, conditionParams) {
-  const context = options.container[option];
-  const formData = new FormData();
-  for (const input of fieldset.querySelectorAll("input, select")) {
-    if (input.name) formData.append(input.name, input.value);
+function updateConditional(fieldset = null) {
+  const formData = new FormData(document.getElementById("generate"));
+  if (fieldset) {
+    // Add all fields from passed fieldset (not yet added to DOM)
+    for (const input of fieldset.querySelectorAll("input, select")) {
+      if (input.name) formData.append(input.name, input.value);
+    }
   }
 
-  let data = parseFormData(formData, true);
-  if (data[option]) data = data[option][0];
-  else return;
+  const data = parseFormData(formData);
+  for (const [option, conditionParams] of Object.entries(conditions)) {
+    for (const [conditionParam, elements] of Object.entries(conditionParams)) {
+      // Find the param (for the condition)
+      const contextParam = options.container[option].params.find(
+        (param) => param.param === conditionParam
+      );
 
-  for (const [conditionParam, elements] of Object.entries(conditionParams)) {
-    const contextParam = context.params.find((param) => param.param === conditionParam);
-    if (!contextParam.condition(data)) {
-      elements.forEach((element) => (element.disabled = true));
-    } else {
-      elements.forEach((element) => (element.disabled = false));
+      // Evaluate the condition and disable/enable
+      const disabled = !contextParam.condition(data);
+      for (const element of elements) {
+        // Doesn't matter if element isn't connected to DOM
+        element.disabled = disabled;
+      }
     }
   }
 }
@@ -159,8 +179,6 @@ function updateConditional(option, fieldset, conditionParams) {
  */
 function generateOption(option, isRemovable = true) {
   const context = options.container[option];
-  // { param1: HTMLInputElement[] | HTMLSelectElement[], param2: [] }
-  const conditionParams = {};
 
   if (!context.allowMultiple)
     document
@@ -183,7 +201,11 @@ function generateOption(option, isRemovable = true) {
       document
         .getElementById("select-option")
         .querySelector(`option[value=${option}]`).disabled = false;
+
+      // Cleanup of conditions isn't really needed
+      updateConditional();
     };
+
     legend.appendChild(remove);
   }
 
@@ -232,11 +254,11 @@ function generateOption(option, isRemovable = true) {
      */
     const add = (element, option, param, attributes = {}) => {
       // Remove "display: none"
-      if (element.style.display === "none") element.style.removeProperty("display");
+      if (element.style.display === "none")
+        element.style.removeProperty("display");
 
       // Add conditions
-      if (conditionParams)
-        attributes.onchange = () => updateConditional(option, fieldset, conditionParams);
+      attributes.onchange = () => updateConditional(fieldset);
 
       return func(element, option, param, attributes);
     };
@@ -271,10 +293,14 @@ function generateOption(option, isRemovable = true) {
     less.textContent = "-";
     // Remove last input but always leave one when required
     less.onclick = () => {
-      if (values.childElementCount > (param.isOptional ? 0 : 1)) values.lastElementChild.remove();
+      if (values.childElementCount > (param.isOptional ? 0 : 1))
+        values.lastElementChild.remove();
 
       // Add "display: none" to remove flex gap
       if (values.childElementCount === 0) values.style.display = "none";
+
+      // Cleanup of conditions isn't really needed
+      updateConditional();
     };
 
     div.appendChild(more);
@@ -288,23 +314,22 @@ function generateOption(option, isRemovable = true) {
     const contextParam = context.params.find((param) => param.param === field);
 
     if (contextParam && "condition" in contextParam) {
-      conditionParams[field] ??= [];
-      conditionParams[field].push(input);
+      conditions[option] ??= [];
+      conditions[option][field] ??= [];
+      conditions[option][field].push(input);
     }
   }
 
-  updateConditional(option, fieldset, conditionParams);
+  updateConditional(fieldset);
   return fieldset;
 }
 
 /**
  * @param {FormData} formData
  * @param {boolean} parseEmpty
- * @returns {Object.<string, Array.<Object.<
- *   string, string | string[] | Object.<string, string>
- * >>>}
+ * @returns {Object.<string, Array.<Object.<string, string | string[] | Object.<string, string>>>>}
  */
-function parseFormData(formData, parseEmpty = false) {
+function parseFormData(formData) {
   // type: { option: [{ name: value, name: value }, {...}] }
   // value is string | string[] | Object<string, string>
   const result = {};
@@ -341,9 +366,6 @@ function parseFormData(formData, parseEmpty = false) {
   let currentArray = [];
   let currentPairs = {};
   for (const [name, value] of formData.entries()) {
-    // Empty option
-    if (!parseEmpty && value === "") continue;
-
     // Submit option
     if (name == "submit") continue;
 
@@ -351,7 +373,8 @@ function parseFormData(formData, parseEmpty = false) {
     let values = name.split(".");
     const isArray = name.endsWith("]");
     const index = values.length - 1;
-    if (isArray) values[index] = values[index].substring(0, values[index].indexOf("["));
+    if (isArray)
+      values[index] = values[index].substring(0, values[index].indexOf("["));
     const [option, field, type] = values;
     const arrayIndex = isArray
       ? Number(name.substring(name.indexOf("[") + 1, name.indexOf("]")))
@@ -389,13 +412,20 @@ function parseFormData(formData, parseEmpty = false) {
 
     updateParams();
 
+    let processedValue = value;
+    if (type === "boolean") {
+      if (value === "true") processedValue = true;
+      else if (value === "false") processedValue = false;
+    }
+
     // Next option (double field)
-    if (field in currentParams) {
-      currentParams[prevField] = value;
+    // except when boolean && true (because of checkbox value -> double option)
+    if (field in currentParams && processedValue !== true) {
+      currentParams[prevField] = processedValue;
       updateResult();
     }
 
-    currentParams[field] = value;
+    currentParams[field] = processedValue;
     prevField = field;
   }
 
@@ -426,13 +456,15 @@ function generatePairs(data, arg = false) {
 
       const context = options.container[name];
       // Try to use argFormat
-      const format = context.argFormat || context.format || (({ value }) => value);
+      const format =
+        context.argFormat || context.format || (({ value }) => value);
 
       // Seperate seperable args
       let addedPair = false;
       for (const [param, value] of Object.entries(params)) {
         // Check if value is object (object = pair)
-        if (!(value && typeof value === "object" && !Array.isArray(value))) continue;
+        if (!(value && typeof value === "object" && !Array.isArray(value)))
+          continue;
 
         addedPair = true;
         for (const [key, val] of Object.entries(value))
@@ -483,17 +515,22 @@ function generatePodmanRun(data) {
         globalArgs.push(value);
         break;
       default:
-        args.push(`--${key} ${value}`);
+        if (value) args.push(`--${key}=${value}`);
+        else args.push(`--${key}=`);
     }
   }
 
-  return ["podman", ...globalArgs, "run", ...args, image, exec].filter(Boolean).join(" ");
+  return ["podman", ...globalArgs, "run", ...args, image, exec]
+    .filter(Boolean)
+    .join(" ");
 }
 
 // Event listener for calling generateOption
 document.getElementById("add-option").addEventListener("submit", (event) => {
   event.preventDefault();
-  const fieldset = generateOption(document.getElementById("select-option").value);
+  const fieldset = generateOption(
+    document.getElementById("select-option").value
+  );
   document.getElementById("options").appendChild(fieldset);
 });
 
