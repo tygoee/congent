@@ -4,19 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quadlets generator</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="src/style.css" />
   </head>
 
   <body>
     <div id="content">
-      <fieldset id="add">
-        <legend>Add</legend>
-        <form id="add-option">
+      <form id="add-option">
+        <fieldset id="add">
+          <legend>Add</legend>
           <label for="select-option">Option</label>
           <select name="select-option" id="select-option"></select>
           <button type="submit">Add</button>
-        </form>
-      </fieldset>
+        </fieldset>
+      </form>
       <form id="generate">
         <fieldset id="options">
           <legend>Options</legend>
@@ -33,7 +33,6 @@
         </fieldset>
       </form>
     </div>
-    <script src="options.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="src/main.ts"></script>
   </body>
 </html>

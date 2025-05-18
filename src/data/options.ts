@@ -1,56 +1,7 @@
-"use strict";
+import * as types from "../types.ts";
+import { Format } from "./format.ts";
 
-// TODO support line wrapping (space-seperated, keys-values etc)
-class Format {
-  /**
-   * @param {Object} param0
-   * @param {boolean} param0.value
-   * @returns {"true" | "false"}
-   */
-  static boolean({ value }) {
-    return value ? "true" : "false";
-  }
-
-  /**
-   * @param {Object} param0
-   * @param {string[]} param0.values
-   * @returns {string}
-   */
-  static sepSpace({ values }) {
-    return values.join(" ");
-  }
-
-  /**
-   * @param {Object} param0
-   * @param {string} param0.host
-   * @param {string} param0.container
-   * @param {string[]} param0.permissions
-   * @param {boolean} param0.ifExists
-   * @returns {string}
-   */
-  static mapping({ host, container = "", permissions = [], ifExists = false }) {
-    // Remove duplicates
-    permissions = [...new Set(permissions)];
-
-    permissions = permissions.length > 0 ? `:${permissions.join("")}` : "";
-    container = container ? `:${container}` : "";
-    return `${ifExists ? "-" : ""}${host}${container}${permissions}`;
-  }
-
-  /**
-   * @param {Object} param0
-   * @param {Object<string, string>} param0.values
-   */
-  static pair({ values }) {
-    return Object.entries(values)
-      .map(([key, value]) =>
-        value.includes(" ") ? `"${key}=${value}"` : `${key}=${value}`
-      )
-      .join(" ");
-  }
-}
-
-const capabilities = [
+const capabilities: string[] = [
   "CAP_AUDIT_CONTROL",
   "CAP_AUDIT_READ",
   "CAP_AUDIT_WRITE",
@@ -102,35 +53,36 @@ const capabilities = [
 /*
 -- options
 options:
-  [container pod kube network volume build image]:
-    option: (quadlet name)
+  ["container" "pod" "kube" "network" "volume" "build" "image"]:
+    option: // quadlet name
 
 -- option
 option:
-  arg: string (podman-run arg, not unique!)
-  allowMultiple?: bool
-  format?: function (defaults to {value} => value)
-  argFormat?: function (format for podman-run, if different)
-  params: param[]
+  arg: string; // podman-run arg, not unique!
+  allowMultiple?: boolean; 
+  format?: (params: any) => string; // defaults to {value} => value
+  argFormat?: (params: any) => string; // format for podman-run, if different
+  params: Param[];
 
 -- param (format function parameters)
 param:
   param: string
-  name: string (pretty name)
-  type: [path string select boolean pair] (max 1 pair!)
-  default?: string (type=select) | bool (type=boolean, default false)
-  placeholder?: string (type=path|string), string[] (type=pair)
-  isArray?: bool
-  isOptional?: bool (always ignored (true) when type=boolean)
-  condition?: function(options) (return false to disable input)
-    type of options is return value from parseFormData()
-    Always use optional chaining (opts?.opt?.func) 
-    when referencing other options
-
-  when type === select:
-  -> options: option[] | object<name, option>
+  name: string
+  type: "path" | "string" | "literal" | "boolean" | "pair" // Max 1 pair
+  default?: 
+    | string // type=literal
+    | boolean // type=boolean
+  placeholder?:
+    | string // type=path|string
+    | [string, string] // type=pair
+  isArray?: boolean  // type!=boolean
+  isOptional?: boolean // type!=boolean
+  condition?: (opts: ParsedFormData) => boolean
+    // Always use optional chaining (opts?.opt?.func) 
+    // when referencing other options
+  options?: string[] | Record<string, string> // type=literal
 */
-const options = {
+export const options: types.Options = {
   container: {
     AddCapability: {
       arg: "cap-add",
@@ -140,7 +92,7 @@ const options = {
         {
           param: "values",
           name: "Capabilities",
-          type: "select",
+          type: "literal",
           isArray: true,
           options: capabilities,
         },
@@ -167,7 +119,7 @@ const options = {
         {
           param: "permissions",
           name: "Permissions",
-          type: "select",
+          type: "literal",
           isArray: true,
           isOptional: true,
           options: { r: "read", w: "write", m: "mknod" },
@@ -182,7 +134,8 @@ const options = {
     AddHost: {
       arg: "add-host",
       allowMultiple: true,
-      format: ({ hostnames, ip }) => `${hostnames.join(";")}:${ip}`,
+      format: ({ hostnames, ip }: { hostnames: string[]; ip: string }) =>
+        `${hostnames.join(";")}:${ip}`,
       params: [
         // Conflicts with --no-hosts
         {
@@ -191,12 +144,6 @@ const options = {
           type: "string",
           placeholder: "example.com",
           isArray: true,
-        },
-        {
-          param: "ip",
-          name: "IP Address",
-          type: "string",
-          placeholder: "192.168.1.0",
         },
       ],
     },
@@ -216,12 +163,13 @@ const options = {
     },
     AutoUpdate: {
       arg: "label",
-      argFormat: ({ value }) => `io.containers.autoupdate=${value}`,
+      argFormat: ({ value }: { value: string }) =>
+        `io.containers.autoupdate=${value}`,
       params: [
         {
           param: "value",
           name: "Value",
-          type: "select",
+          type: "literal",
           options: ["registry", "local"],
         },
       ],
@@ -232,7 +180,7 @@ const options = {
         {
           param: "value",
           name: "Mode",
-          type: "select",
+          type: "literal",
           default: "split",
           options: ["enabled", "split", "no-conmon", "disabled"],
           // disabled conflicts with cgroupsns and cgroup-parent
@@ -279,13 +227,14 @@ const options = {
     DNSOption: {
       arg: "dns-option",
       allowMultiple: true,
-      format: ({ option, value }) => option + (value ? `:${value}` : ""),
+      format: ({ option, value }: { option: string; value: string }) =>
+        option + (value ? `:${value}` : ""),
       params: [
         // conflicts with network=none or network=container:id
         {
           param: "option",
           name: "Option",
-          type: "select",
+          type: "literal",
           options: [
             "debug",
             "ndots",
@@ -314,8 +263,10 @@ const options = {
           isOptional: true,
           placeholder: "number",
           condition: (opts) =>
-            opts.DNSOption.some((opt) =>
-              ["ndots", "timeout", "attempts"].includes(opt.option)
+            opts.DNSOption.some(
+              (opt) =>
+                typeof opt.option === "string" &&
+                ["ndots", "timeout", "attempts"].includes(opt.option)
             ),
         },
       ],
@@ -341,7 +292,7 @@ const options = {
         {
           param: "values",
           name: "Capabilities",
-          type: "select",
+          type: "literal",
           isArray: true,
           options: ["all", ...capabilities],
         },
@@ -349,7 +300,7 @@ const options = {
     },
     Entrypoint: {
       arg: "entrypoint",
-      format: ({ values }) =>
+      format: ({ values }: { values: string[] }) =>
         values.length > 0 ? JSON.stringify(values) : values[0],
       params: [
         {
@@ -408,7 +359,8 @@ const options = {
     },
     ExposeHostPort: {
       arg: "expose",
-      format: ({ port, protocol }) => `${port}/${protocol}`,
+      format: ({ port, protocol }: { port: string; protocol: string }) =>
+        `${port}/${protocol}`,
       params: [
         {
           param: "port",
@@ -419,7 +371,7 @@ const options = {
         {
           // Required because the default is misleading
           param: "protocol",
-          type: "select",
+          type: "literal",
           name: "Protocol",
           default: "tcp",
           options: ["tcp", "udp", "sctp"],
@@ -640,121 +592,121 @@ const options = {
     // },
   },
   pod: {
-    AddHost: {},
-    ContainersConfModule: {},
-    DNS: {},
-    DNSOption: {},
-    DNSSearch: {},
-    GIDMap: {},
-    GlobalArgs: {},
-    HostName: {},
-    IP: {},
-    IP6: {},
-    Label: {},
-    Network: {},
-    NetworkAlias: {},
-    PodmanArgs: {},
-    PodName: {},
-    PublishPort: {},
-    ServiceName: {},
-    ShmSize: {},
-    SubGIDMap: {},
-    SubUIDMap: {},
-    UIDMap: {},
-    UserNS: {},
-    Volume: {},
+    // AddHost: {},
+    // ContainersConfModule: {},
+    // DNS: {},
+    // DNSOption: {},
+    // DNSSearch: {},
+    // GIDMap: {},
+    // GlobalArgs: {},
+    // HostName: {},
+    // IP: {},
+    // IP6: {},
+    // Label: {},
+    // Network: {},
+    // NetworkAlias: {},
+    // PodmanArgs: {},
+    // PodName: {},
+    // PublishPort: {},
+    // ServiceName: {},
+    // ShmSize: {},
+    // SubGIDMap: {},
+    // SubUIDMap: {},
+    // UIDMap: {},
+    // UserNS: {},
+    // Volume: {},
   },
   kube: {
-    AutoUpdate: {},
-    ConfigMap: {},
-    ContainersConfModule: {},
-    ExitCodePropagation: {},
-    GlobalArgs: {},
-    KubeDownForce: {},
-    LogDriver: {},
-    Network: {},
-    PodmanArgs: {},
-    PublishPort: {},
-    SetWorkingDirectory: {},
-    UserNS: {},
-    Yaml: {},
+    // AutoUpdate: {},
+    // ConfigMap: {},
+    // ContainersConfModule: {},
+    // ExitCodePropagation: {},
+    // GlobalArgs: {},
+    // KubeDownForce: {},
+    // LogDriver: {},
+    // Network: {},
+    // PodmanArgs: {},
+    // PublishPort: {},
+    // SetWorkingDirectory: {},
+    // UserNS: {},
+    // Yaml: {},
   },
   network: {
-    ContainersConfModule: {},
-    DisableDNS: {},
-    DNS: {},
-    Driver: {},
-    Gateway: {},
-    GlobalArgs: {},
-    Internal: {},
-    IPAMDriver: {},
-    IPRange: {},
-    IPv6: {},
-    Label: {},
-    NetworkDeleteOnStop: {},
-    NetworkName: {},
-    Options: {},
-    PodmanArgs: {},
-    Subnet: {},
+    // ContainersConfModule: {},
+    // DisableDNS: {},
+    // DNS: {},
+    // Driver: {},
+    // Gateway: {},
+    // GlobalArgs: {},
+    // Internal: {},
+    // IPAMDriver: {},
+    // IPRange: {},
+    // IPv6: {},
+    // Label: {},
+    // NetworkDeleteOnStop: {},
+    // NetworkName: {},
+    // Options: {},
+    // PodmanArgs: {},
+    // Subnet: {},
   },
   volume: {
-    ContainersConfModule: {},
-    Copy: {},
-    Device: {},
-    Driver: {},
-    GlobalArgs: {},
-    Group: {},
-    Image: {},
-    Label: {},
-    Options: {},
-    PodmanArgs: {},
-    Type: {},
-    User: {},
-    VolumeName: {},
+    // ContainersConfModule: {},
+    // Copy: {},
+    // Device: {},
+    // Driver: {},
+    // GlobalArgs: {},
+    // Group: {},
+    // Image: {},
+    // Label: {},
+    // Options: {},
+    // PodmanArgs: {},
+    // Type: {},
+    // User: {},
+    // VolumeName: {},
   },
   build: {
-    Annotation: {},
-    Arch: {},
-    AuthFile: {},
-    ContainersConfModule: {},
-    DNS: {},
-    DNSOption: {},
-    DNSSearch: {},
-    Environment: {},
-    File: {},
-    ForceRM: {},
-    GlobalArgs: {},
-    GroupAdd: {},
-    ImageTag: {},
-    Label: {},
-    Network: {},
-    PodmanArgs: {},
-    Pull: {},
-    Retry: {},
-    RetryDelay: {},
-    Secret: {},
-    SetWorkingDirectory: {},
-    Target: {},
-    TLSVerify: {},
-    Variant: {},
-    Volume: {},
+    // Annotation: {},
+    // Arch: {},
+    // AuthFile: {},
+    // ContainersConfModule: {},
+    // DNS: {},
+    // DNSOption: {},
+    // DNSSearch: {},
+    // Environment: {},
+    // File: {},
+    // ForceRM: {},
+    // GlobalArgs: {},
+    // GroupAdd: {},
+    // ImageTag: {},
+    // Label: {},
+    // Network: {},
+    // PodmanArgs: {},
+    // Pull: {},
+    // Retry: {},
+    // RetryDelay: {},
+    // Secret: {},
+    // SetWorkingDirectory: {},
+    // Target: {},
+    // TLSVerify: {},
+    // Variant: {},
+    // Volume: {},
   },
   image: {
-    AllTags: {},
-    Arch: {},
-    AuthFile: {},
-    CertDir: {},
-    ContainersConfModule: {},
-    Creds: {},
-    DecryptionKey: {},
-    GlobalArgs: {},
-    Image: {},
-    ImageTag: {},
-    OS: {},
-    PodmanArgs: {},
-    Retry: {},
-    RetryDelay: {},
-    TLSVerify: {},
-    Variant: {},
+    // AllTags: {},
+    // Arch: {},
+    // AuthFile: {},
+    // CertDir: {},
+    // ContainersConfModule: {},
+    // Creds: {},
+    // DecryptionKey: {},
+    // GlobalArgs: {},
+    // Image: {},
+    // ImageTag: {},
+    // OS: {},
+    // PodmanArgs: {},
+    // Retry: {},
+    // RetryDelay: {},
+    // TLSVerify: {},
+    // Variant: {},
   },
 };

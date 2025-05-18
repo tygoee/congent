@@ -1,19 +1,15 @@
-"use strict";
+import * as types from "../types.ts";
+import { Format } from "../data/format.ts";
+import { options } from "../data/options.ts";
+import { parseFormData, generatePairs } from "../utils/generate.ts";
 
 // TODO Make this an automated test (Github actions)
 
 // When testing a single test, just comment out the rest for now
-/* Test script (all files/functions have to be loaded)
-const script = document.createElement('script');
-script.src = 'test.js';
-document.body.appendChild(script);
-*/
+// Add this script tag at the bottom of the body
+// <script type="module" src="src/tests/test.ts"></script>
 
-/**
- * @param {Object<string, string>} obj
- * @returns {FormData}
- */
-function generateFormData(obj) {
+function generateFormData(obj: Record<string, string>): FormData {
   const formData = new FormData();
   for (const [key, value] of Object.entries(obj)) {
     const index = key.indexOf("/");
@@ -24,7 +20,7 @@ function generateFormData(obj) {
 }
 
 // Add x/1 x/2 etc for duplicate form items
-const formDataAssertions = [
+const formDataAssertions: [Record<string, string>, types.ParsedFormData][] = [
   // One option, single
   [
     { "AddDevice.host": "/dev/device" },
@@ -38,7 +34,7 @@ const formDataAssertions = [
   // One option, including empty
   [
     { "AddDevice.host": "/dev/device", "AddDevice.container": "" },
-    { AddDevice: [{ host: "/dev/device" }] },
+    { AddDevice: [{ host: "/dev/device", container: "" }] },
   ],
   // Different options, different fields
   [
@@ -61,7 +57,7 @@ const formDataAssertions = [
   // One option, overlapping fields, including empty
   [
     { "AddDevice.host/1": "/dev/device", "AddDevice.host/2": "" },
-    { AddDevice: [{ host: "/dev/device" }] },
+    { AddDevice: [{ host: "/dev/device" }, { host: "" }] },
   ],
   // Different options, overlapping fields
   [
@@ -190,8 +186,8 @@ const formDataAssertions = [
   // Boolean (true), one option
   [
     {
-      "AddDevice.ifExists.boolean": "false",
-      "AddDevice.ifExists.boolean": "true",
+      "AddDevice.ifExists.boolean/1": "false",
+      "AddDevice.ifExists.boolean/2": "true",
     },
     { AddDevice: [{ ifExists: true }] },
   ],
@@ -214,8 +210,8 @@ const formDataAssertions = [
   // Boolean (true), different fields
   [
     {
-      "AddDevice.ifExists.boolean": "false",
-      "AddDevice.ifExists.boolean": "true",
+      "AddDevice.ifExists.boolean/1": "false",
+      "AddDevice.ifExists.boolean/2": "true",
       "AddDevice.host": "/dev/device",
     },
     { AddDevice: [{ ifExists: true, host: "/dev/device" }] },
@@ -235,8 +231,8 @@ const formDataAssertions = [
   // Boolean (true), different options
   [
     {
-      "AddDevice.ifExists.boolean": "false",
-      "AddDevice.ifExists.boolean": "true",
+      "AddDevice.ifExists.boolean/1": "false",
+      "AddDevice.ifExists.boolean/2": "true",
       "AddHost.hostname": "example.com",
       "AddHost.ip": "192.168.1.0",
     },
@@ -254,7 +250,7 @@ const formDataAssertions = [
   ],
 ];
 
-const assertions = [
+const assertions: [any, any][] = [
   [Format.boolean({ value: true }), "true"],
   [Format.boolean({ value: false }), "false"],
   [Format.sepSpace({ values: ["A"] }), "A"],
@@ -284,7 +280,6 @@ const assertions = [
   [Format.pair({ values: { A: "B", C: "D" } }), "A=B C=D"],
   [Format.pair({ values: { A: "B C" } }), '"A=B C"'],
   [Format.pair({ values: { A: "B C", D: "E" } }), '"A=B C" D=E'],
-
   // One field, arg false
   [
     generatePairs({ AutoUpdate: [{ value: "registry" }] }),
@@ -328,24 +323,21 @@ const assertions = [
   // TODO tests for generateQuadlet and generatePodmanRun
 ];
 
-/**
- * @param {any[]} assertion
- * @returns {void}
- */
-function assert([key, value]) {
+function assert(key: any, value: any) {
   [key, value] = [JSON.stringify(key), JSON.stringify(value)];
 
   console.debug("asserting", key, "equals", value);
   console.assert(key === value, `${key} !== ${value}`);
 }
 
-function assertType(key, value) {
+function assertType(key: any, value: any) {
   console.assert(
     typeof key === value,
     `typeof ${JSON.stringify(key)} !== ${value}`
   );
 }
 
+// Typescript does most of this already
 function testOptions() {
   for (const option of Object.values(options.container)) {
     assertType(option.arg, "string");
@@ -364,21 +356,21 @@ function testOptions() {
       assertType(param.name, "string");
       assertType(param.type, "string");
       console.assert(
-        ["path", "string", "select", "boolean", "pair"].includes(param.type),
-        `param.type (${param.type}) !== path | string | select | boolean | pair`
+        ["path", "string", "literal", "boolean", "pair"].includes(param.type),
+        `param.type (${param.type}) !== path | string | literal | boolean | pair`
       );
 
       if ("isArray" in param) assertType(param.isArray, "boolean");
       if ("isOptional" in param) assertType(param.isOptional, "boolean");
       if ("condition" in param) assertType(param.condition, "function");
 
-      if (param.type === "select") {
-        // select needs options
+      if (param.type === "literal") {
+        // literal needs options
         console.assert(
           "options" in param && param.options != null,
           `param.type (${
             param.type
-          }) === select && param.options (${JSON.stringify(
+          }) === literal && param.options (${JSON.stringify(
             param.options
           )}) === undefined | null`
         );
@@ -399,10 +391,10 @@ function testOptions() {
       if ("default" in param)
         switch (typeof param.default) {
           case "string":
-            // has to be select
+            // has to be literal
             console.assert(
-              param.type === "select",
-              `typeof param.default (${param.default}) === string && param.type !== select (${param.type})`
+              param.type === "literal",
+              `typeof param.default (${param.default}) === string && param.type !== literal (${param.type})`
             );
             break;
           case "boolean":
@@ -459,10 +451,9 @@ function testOptions() {
 }
 
 for (const assertion of formDataAssertions) {
-  assertion[0] = parseFormData(generateFormData(assertion[0]));
-  assert(assertion);
+  assert(parseFormData(generateFormData(assertion[0])), assertion[1]);
 }
 
-for (const assertion of assertions) assert(assertion);
+for (const assertion of assertions) assert(assertion[0], assertion[1]);
 
 testOptions();
