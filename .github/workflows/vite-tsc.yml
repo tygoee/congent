@@ -1,4 +1,4 @@
-name: Compile typescript and bundle with vite
+name: vite and typescript build and deployment
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
       - name: Compile Typescript
         run: npx tsc
       - name: Build with Vite
-        run: npx vite build --base=/my-project/
+        run: npx vite build --base=/quadlets-generator/
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
