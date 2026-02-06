@@ -1,6 +1,6 @@
-# Quadlets generator
+# Congent: Container configuration generator
 
-A simple webpage to generate quadlets
+A webpage to generate container configuations, focused on Podman Quadlets
 
 ## License
 

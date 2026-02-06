@@ -1,0 +1,132 @@
+/* 
+Color scheme (dark to light): #181818 #242424 #333333 #e6e6e6 
+Old: #212121 #2e2e2e #3e3e3e #dddddd
+*/
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-size: 15px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #e6e6e6;
+  background-color: #242424;
+
+  display: grid;
+  grid-template-columns: 300px 3fr 2fr;
+  height: 100vh;
+}
+
+h1,
+h2 {
+  font-size: 15px;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+button,
+select,
+input {
+  padding: 1px 4px;
+
+  color: #e6e6e6;
+  background-color: #242424;
+  border: 2px solid #333333;
+  font-size: 15px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button:hover,
+select:hover {
+  background-color: #333333;
+}
+
+.sidebar {
+  display: grid;
+  grid-template-rows: minmax(25px, auto) minmax(25px, 1fr) minmax(25px, 1fr);
+  border-right: 2px solid #333333;
+
+  background-color: #181818;
+}
+
+.sidebar-general {
+  margin: 5px 0px;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  align-content: start;
+}
+
+.sidebar-general div {
+  display: grid;
+  grid-auto-flow: column;
+}
+
+.sidebar-general div > * {
+  margin: 5px 10px;
+}
+
+.sidebar-general button,
+.sidebar-general select {
+  border: 2px solid #333333;
+}
+
+.sidebar-header {
+  display: grid;
+  align-items: center;
+  padding-left: 10px;
+  height: 25px;
+
+  background-color: #333333;
+}
+
+.sidebar-list {
+  display: grid;
+  align-content: start;
+
+  overflow-y: auto;
+}
+
+.sidebar-list button {
+  text-align: left;
+  padding-left: 10px;
+  height: 25px;
+  border: none;
+  outline-offset: -3px;
+}
+
+.sidebar-header {
+  font-weight: bold;
+}
+
+.resource {
+  display: grid;
+  grid-template-rows: 75px 1fr;
+}
+
+.navbar {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-bottom: 2px solid #333333;
+  background-color: #181818;
+}
+
+.navbar-header,
+.navbar-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+  gap: 10px;
+  padding-left: 20px;
+}
+
+.output {
+  display: grid;
+  background-color: #181818;
+  border-left: 2px solid #333333;
+}
