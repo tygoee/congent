@@ -1,5 +1,4 @@
 "use strict";
-const resourceSelect = document.getElementById("resource-select");
 
 const sidebarResourceTemplate = document.getElementById("sidebar-resource-template");
 const sidebarResourceList = document.getElementById("sidebar-resource-list");
@@ -30,34 +29,70 @@ function addResource(type) {
   const name = type.substring(type.indexOf("-") + 1).replace("-", " ");
 
   // Create the sidebar resource button
-  const sidebarResourceClone = sidebarResourceTemplate.content.cloneNode(true);
-  const resourceButton = sidebarResourceClone.querySelector("button");
+  const resourceButton = document.createElement("button");
   resourceButton.id = `resource-sidebar-${id}`;
+  resourceButton.role = "tab";
   resourceButton.setAttribute("aria-controls", `resource-page-${id}`);
   resourceButton.textContent = `Unnamed ${name}`;
   resourceButton.onclick = () => setPage(id);
 
-  // Create the (hidden) resource page
-  const pageClone = document.getElementById(`${type}-template`).content.cloneNode(true);
+  // Create the (hidden for now) resource page
+  const pageClone = document.getElementById(`template-${type}`).content.cloneNode(true);
   const page = pageClone.querySelector(".resource");
   page.id = `resource-page-${id}`;
   page.setAttribute("aria-labelledby", `resource-sidebar-${id}`);
   page.style.display = "none";
 
-  // Create the tabs with their navbar buttons
+  // Connect the tabs with their navbar buttons
   let first = true;
   for (const tabButton of page.querySelector(".navbar-tabs").children) {
     const tabName = tabButton.getAttribute("data-tab");
 
     tabButton.id = `resource-navbar-${tabName}-${id}`;
+    tabButton.type = "button";
     tabButton.setAttribute("aria-controls", `resource-tab-${tabName}-${id}`);
     tabButton.onclick = () => setTab(id, tabName);
 
     const tab = page.querySelector(`.content [data-tab="${tabName}"]`);
     tab.id = `resource-tab-${tabName}-${id}`;
     tab.setAttribute("aria-labelledby", `resource-navbar-${tabName}-${id}`);
+
     if (!first) tab.style.display = "none";
     first = false;
+  }
+
+  // Connect the labels and information
+  for (const option of page.querySelectorAll(".option")) {
+    const input = option.querySelector("input, select");
+    const inputId = `option-${input.name}-${id}`;
+    input.id = inputId;
+
+    const label = option.querySelector("label");
+    if (label) label.htmlFor = inputId;
+
+    const small = option.querySelector("small");
+    if (small) {
+      small.id = `${inputId}-descriptor`;
+      input.setAttribute("aria-describedby", small.id);
+    }
+
+    const paragraph = option.querySelector("p");
+    const info = option.querySelector(".info");
+    if (info) {
+      paragraph.id = `${inputId}-info`;
+      info.id = `${inputId}-info-toggle`;
+      info.role = "button";
+      info.tabIndex = 0;
+      info.setAttribute("aria-label", "More information");
+      info.setAttribute("aria-controls", paragraph.id);
+      info.setAttribute("aria-expanded", false);
+      info.onclick = () => {
+        paragraph.hidden = !paragraph.hidden;
+        info.setAttribute("aria-expanded", !paragraph.hidden);
+      };
+
+      paragraph.setAttribute("aria-labelledby", info.id);
+    }
   }
 
   sidebarResourceList.appendChild(resourceButton);
@@ -67,7 +102,7 @@ function addResource(type) {
 }
 
 // element: data-when, type: 'enable'|'show'
-function updateConditionalDo(optionGroup, element, type) {
+function updateConditional(form, element, type) {
   const condition = JSON.parse(element.getAttribute(`data-${type}-when`));
 
   // Eval single option value
@@ -93,16 +128,19 @@ function updateConditionalDo(optionGroup, element, type) {
 
     const option = Object.keys(cond)[0];
     const rule = cond[option];
-    const optionElement = optionGroup.querySelector(`[data-option="${option}"]`).value;
+    const optionElement = form.querySelector(`[name="${option}"]`).value;
     return evalValue(optionElement, rule);
   }
 
-  const succeeded = evalCondition(condition);
-  if (type === "show") element.style.display = succeeded ? "" : "none";
-  element.disabled = !succeeded;
+  const matched = evalCondition(condition);
+  if (type === "show") {
+    element.hidden = !matched;
+    element.style.display = matched ? "" : "none";
+  }
+  element.disabled = !matched;
 
   // Reset the selection if it's disabled/hidden
-  if (!succeeded && element.tagName === "OPTION" && element.selected) {
+  if (!matched && element.tagName === "OPTION" && element.selected) {
     const select = element.closest("select");
     for (const option of select.options) {
       option.selected = option.defaultSelected;
@@ -110,27 +148,33 @@ function updateConditionalDo(optionGroup, element, type) {
   }
 }
 
-function selectConditional(optionGroup) {
-  for (const element of optionGroup.querySelectorAll("[data-enable-when]")) {
-    updateConditionalDo(optionGroup, element, "enable");
+function selectConditional(form) {
+  for (const element of form.querySelectorAll("[data-enable-when]")) {
+    updateConditional(form, element, "enable");
   }
 
-  for (const element of optionGroup.querySelectorAll("[data-show-when]")) {
-    updateConditionalDo(optionGroup, element, "show");
+  for (const element of form.querySelectorAll("[data-show-when]")) {
+    updateConditional(form, element, "show");
   }
 }
 
-function updateConditional(event) {
-  if (event) selectConditional(event.target.closest("[data-option-group]"));
+function updateConditionals(event) {
+  if (event) selectConditional(event.target.closest("form"));
   else {
-    for (const optionGroup of document.querySelectorAll("[data-option-group]")) {
-      selectConditional(optionGroup);
+    for (const form of document.querySelectorAll("form")) {
+      selectConditional(form);
     }
   }
 }
 
-document.addEventListener("input", updateConditional);
-document.addEventListener("change", updateConditional);
-updateConditional();
+document.addEventListener("input", updateConditionals);
+document.addEventListener("change", updateConditionals);
+updateConditionals();
 
-document.getElementById("add-resource").addEventListener("click", () => addResource(resourceSelect.value));
+const addResourceForm = document.forms["add-resource"];
+addResourceForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const type = addResourceForm.elements.namedItem("resource").value;
+  if (document.getElementById(`template-${type}`)) addResource(type);
+});

@@ -1,9 +1,8 @@
 <!--
-IDs inside templates are prefixed with t- to prevent collisions
-Reserved: resource-(sidebar,page,navbar,tab)
+Reserved id's: resource-(sidebar,page,navbar,tab-<name>)-<id>, option-*-<id>
 
-data-show-when, data-enabled-when
-where option is in current data-option-group with option being data-option
+data-show-when, data-enabled-when show/enable inputs/elemnts in a form
+where option is in current form with option being the name value of any input
 have this syntax with quotes. note some reserved words (not, all, any, contains):
   comparison {option: value}
   not condition {not: {option: value}}
@@ -27,42 +26,34 @@ have this syntax with quotes. note some reserved words (not, all, any, contains)
   </head>
   <body>
     <!-- Sidebar -->
-    <nav class="sidebar" aria-label="Resource selection">
+    <aside class="sidebar" aria-label="Resource selection">
       <!-- General sidebar section -->
       <section>
         <h2 class="sidebar-header">General</h2>
-        <div class="sidebar-general" data-option-group>
+        <form class="sidebar-general" name="add-resource" autocomplete="off">
           <div>
             <label for="orchestrator">Orchestrator</label>
-            <select id="orchestrator" data-option="orchestrator">
-              <option value="docker">Docker</option>
+            <select id="orchestrator" name="orchestrator">
               <option value="podman" selected>Podman</option>
             </select>
           </div>
           <div>
             <label for="resource-select">Resource</label>
-            <select id="resource-select">
-              <option selected disabled hidden></option>
+            <select id="resource-select" name="resource">
+              <option value="" selected disabled hidden>&nbsp;</option>
               <option value="podman-container" data-show-when='{"orchestrator":"podman"}'>Podman container</option>
               <option value="docker-container" data-show-when='{"orchestrator":"docker"}'>Docker container</option>
             </select>
           </div>
           <div>
-            <button id="add-resource">Add resource</button>
+            <button type="submit">Add resource</button>
           </div>
-        </div>
+        </form>
       </section>
       <!-- Resources sidebar section -->
       <section>
         <h2 class="sidebar-header">Resources</h2>
-        <template id="sidebar-resource-template">
-          <button
-            role="tab"
-            aria-selected="false"
-            aria-controls="t-resource-page-id"
-            id="t-resource-sidebar-id"
-          ></button>
-        </template>
+        <!-- The sidebar entries have role tab, id resource-sidebar-<id> and (aria-)control resource-page-<id> -->
         <div id="sidebar-resource-list" class="sidebar-list" role="tablist"></div>
       </section>
       <!-- Files sidebar section -->
@@ -70,52 +61,45 @@ have this syntax with quotes. note some reserved words (not, all, any, contains)
         <h2 class="sidebar-header">Files</h2>
         <div id="sidebar-files-list" class="sidebar-list" role="tablist"></div>
       </section>
-    </nav>
+    </aside>
 
-    <!-- Templates for main section -->
-    <template id="podman-container-template">
-      <div id="t-resource-page-id" class="resource" role="tabpanel" aria-labelledby="t-resource-sidebar-id">
-        <nav class="navbar" aria-label="Container configuration">
-          <h1 class="navbar-header">Unnamed container</h1>
-          <div class="navbar-tabs" role="tablist" aria-label="Container settings">
-            <button
-              id="t-container-navbar-general-id"
-              role="tab"
-              aria-selected="false"
-              aria-controls="t-container-tab-general-id"
-              data-tab="general"
-            >
-              General
-            </button>
-            <button
-              id="t-container-navbar-networking-id"
-              role="tab"
-              aria-selected="false"
-              aria-controls="t-container-tab-networking-id"
-              data-tab="networking"
-            >
-              Networking
-            </button>
+    <!-- Resource templates for main section -->
+    <!-- The resources themselves have the id resource-page-<id> and are aria labelled by resource-sidebar-<id> -->
+    <!-- The tabs have id resource-navbar-<name>-<id> and (aria-)control resource-tab-<name>-<id> -->
+    <template id="template-podman-container">
+      <div class="resource" role="tabpanel">
+        <form autocomplete="off">
+          <nav class="navbar" aria-label="Container configuration">
+            <h1 class="navbar-header">Unnamed container</h1>
+            <div class="navbar-tabs" role="tablist" aria-label="Container settings">
+              <button role="tab" aria-selected="false" data-tab="general">General</button>
+              <button role="tab" aria-selected="false" data-tab="networking">Networking</button>
+            </div>
+          </nav>
+          <div class="content">
+            <div class="tab-panel" role="tabpanel" data-tab="general">
+              <fieldset>
+                <div class="option">
+                  <div>
+                    <label>Name</label>
+                    <span class="info" role="button" tabindex="0">&#9432;</span>
+                  </div>
+                  <input type="text" name="name" />
+                  <small>The container name</small>
+                  <p hidden>The container name is used to reference the container</p>
+                </div>
+                <div class="option">
+                  <div>
+                    <label data-for="image">Image / FQIN</label>
+                  </div>
+                  <input type="text" name="image" />
+                </div>
+              </fieldset>
+              <fieldset></fieldset>
+            </div>
+            <div role="tabpanel" data-tab="networking">Networking</div>
           </div>
-        </nav>
-        <div class="content">
-          <div
-            id="t-container-tab-general-id"
-            role="tabpanel"
-            aria-labelledby="t-container-navbar-general-id"
-            data-tab="general"
-          >
-            General
-          </div>
-          <div
-            id="t-container-tab-networking-id"
-            role="tabpanel"
-            aria-labelledby="t-container-navbar-networking-id"
-            data-tab="networking"
-          >
-            Networking
-          </div>
-        </div>
+        </form>
       </div>
     </template>
 
