@@ -1,6 +1,8 @@
 # Congent: Container configuration generator
 
-A webpage to generate container configuations, focused on Podman Quadlets
+A webpage for generating Podman and Docker container configurations, focused on Podman Quadlets
+
+Visit the site here: <https://congent.tygoe.com/>
 
 ## License
 
