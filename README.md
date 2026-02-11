@@ -4,9 +4,15 @@ A webpage for generating Podman and Docker container configurations, focused on 
 
 Visit the site here: <https://congent.tygoe.com/>
 
-## License
+## Licenses
 
 This project is licensed under the MIT License. For more information, see [LICENSE](./LICENSE).
+
+Licenses of dependencies are in their respective source files.
+
+### Dependencies
+
+- npm/ini: https://github.com/npm/ini
 
 ## Quadlet source code
 

@@ -23,7 +23,9 @@ have this syntax with quotes. note some reserved words (not, all, any, contains)
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Congent</title>
     <meta name="description" content="A webpage for generating Podman and Docker container configurations" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v0.1" />
+    <script src="ini.js?v6.0.0" type="module"></script>
+    <script src="main.js?v0.1" type="module"></script>
   </head>
   <body>
     <!-- Sidebar -->
@@ -32,86 +34,149 @@ have this syntax with quotes. note some reserved words (not, all, any, contains)
       <section>
         <h2 class="sidebar-header">General</h2>
         <form class="sidebar-general" name="add-resource" autocomplete="off">
-          <div>
-            <label for="orchestrator">Orchestrator</label>
-            <select id="orchestrator" name="orchestrator">
-              <option value="podman" selected>Podman</option>
-            </select>
-          </div>
-          <div>
-            <label for="resource-select">Resource</label>
-            <select id="resource-select" name="resource">
-              <option value="" selected disabled hidden>&nbsp;</option>
-              <option value="podman-container" data-show-when='{"orchestrator":"podman"}'>Podman container</option>
-              <option value="docker-container" data-show-when='{"orchestrator":"docker"}'>Docker container</option>
-            </select>
-          </div>
-          <div>
-            <button type="submit">Add resource</button>
-          </div>
+          <label for="orchestrator">Orchestrator</label>
+          <select id="orchestrator" name="orchestrator">
+            <option value="podman" selected>Podman</option>
+          </select>
+          <label for="resource-select">Resource</label>
+          <select id="resource-select" name="resource">
+            <option value="" selected disabled hidden>&nbsp;</option>
+            <option value="podman-container" data-show-when='{"orchestrator":"podman"}'>Podman container</option>
+            <option value="docker-container" data-show-when='{"orchestrator":"docker"}'>Docker container</option>
+          </select>
+          <button type="submit">Add resource</button>
         </form>
       </section>
       <!-- Resources sidebar section -->
       <section>
         <h2 class="sidebar-header">Resources</h2>
         <!-- The sidebar entries have role tab, id resource-sidebar-<id> and (aria-)control resource-page-<id> -->
-        <div id="sidebar-resource-list" class="sidebar-list" role="tablist"></div>
-      </section>
-      <!-- Files sidebar section -->
-      <section>
-        <h2 class="sidebar-header">Files</h2>
-        <div id="sidebar-files-list" class="sidebar-list" role="tablist"></div>
+        <div id="sidebar-list" class="sidebar-list" role="tablist"></div>
       </section>
     </aside>
 
-    <!-- Resource templates for main section -->
-    <!-- The resources themselves have the id resource-page-<id> and are aria labelled by resource-sidebar-<id> -->
-    <!-- The tabs have id resource-navbar-<name>-<id> and (aria-)control resource-tab-<name>-<id> -->
+    <!--
+    Resource templates for main section, including navbar and the output tab
+    The resources themselves have the id resource-page-<id> and are aria labelled by resource-sidebar-<id>
+    The tabs have id resource-navbar-<name>-<id> and (aria-)control resource-tab-<name>-<id>
+    -->
+
+    <!-- Dummy template -->
+    <template>
+      <div class="resource">
+        <form>
+          <nav class="navbar" aria-label="Configuration">
+            <h1>No resource selected</h1>
+            <div class="tabs" role="tablist">
+              <button role="tab" data-tab="general">General</button>
+            </div>
+          </nav>
+          <main class="content">
+            <div role="tabpanel" data-tab="general">
+              <fieldset>
+                <div class="option" data-option="name">
+                  <div>
+                    <label>Name</label>
+                    <button class="info-toggle">&#9432;</button>
+                  </div>
+                  <input type="text" />
+                  <small>Short description</small>
+                  <p class="info">Longer paragraph of information</p>
+                </div>
+              </fieldset>
+            </div>
+          </main>
+          <section class="output">
+            <h2 class="sidebar-header">Output</h2>
+            <div>
+              <div class="output-options">
+                <label for="output-type">Output type</label>
+                <select id="output-type">
+                  <option></option>
+                </select>
+              </div>
+              <output>
+                <pre></pre>
+              </output>
+            </div>
+          </section>
+        </form>
+      </div>
+    </template>
+
     <template id="template-podman-container">
       <div class="resource" role="tabpanel">
         <form autocomplete="off">
-          <nav class="navbar" aria-label="Container configuration">
-            <h1 class="navbar-header">Unnamed container</h1>
-            <div class="navbar-tabs" role="tablist" aria-label="Container settings">
-              <button role="tab" aria-selected="false" data-tab="general">General</button>
-              <button role="tab" aria-selected="false" data-tab="networking">Networking</button>
+          <nav aria-label="Configuration">
+            <h1>Unnamed container</h1>
+            <div class="tabs" role="tablist">
+              <button role="tab" data-tab="general">General</button>
+              <button role="tab" data-tab="networking">Networking</button>
             </div>
           </nav>
-          <div class="content">
-            <div class="tab-panel" role="tabpanel" data-tab="general">
+          <main class="content">
+            <div role="tabpanel" data-tab="general">
               <fieldset>
-                <div class="option">
+                <div class="option" data-option="name">
                   <div>
                     <label>Name</label>
-                    <span class="info">&#9432;</span>
+                    <button class="info-toggle">&#9432;</button>
                   </div>
-                  <input type="text" name="name" />
+                  <input type="text" />
                   <small>The container name</small>
-                  <p hidden>The container name is used to reference the container</p>
+                  <p class="info">The container name is used to reference the container</p>
                 </div>
-                <div class="option">
+                <div class="option" data-option="image">
                   <div>
                     <label data-for="image">Image / FQIN</label>
                   </div>
-                  <input type="text" name="image" />
+                  <input type="text" />
                 </div>
               </fieldset>
               <fieldset></fieldset>
             </div>
             <div role="tabpanel" data-tab="networking">Networking</div>
-          </div>
+          </main>
+
+          <section class="output">
+            <h2 class="sidebar-header">Output</h2>
+            <div>
+              <div class="output-options">
+                <label for="output-type">Output type</label>
+                <select id="output-type">
+                  <option>Quadlets</option>
+                </select>
+              </div>
+              <output>
+                <pre></pre>
+              </output>
+            </div>
+          </section>
         </form>
       </div>
     </template>
 
-    <!-- Main section -->
-    <main id="pages"></main>
-
-    <!-- Output -->
-    <section class="output">
-      <h2 class="sidebar-header">Output</h2>
-    </section>
-
-    <script src="script.js"></script>
+    <!-- Main section with empty page -->
+    <div id="pages">
+      <div class="resource">
+        <form>
+          <nav class="navbar">
+            <h1>No resource selected</h1>
+          </nav>
+          <main class="content">
+            <div style="display: block">
+              <p>Add or select a resource in the sidebar to get started.</p>
+              <p>
+                For more information or filing issues, visit
+                <a href="https://github.com/tygoee/congent" style="text-decoration: underline">the GitHub repository</a>
+              </p>
+            </div>
+          </main>
+          <section class="output">
+            <h2 class="sidebar-header">Output</h2>
+          </section>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

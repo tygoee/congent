@@ -1,12 +1,20 @@
 "use strict";
 
-const sidebarResourceTemplate = document.getElementById("sidebar-resource-template");
-const sidebarResourceList = document.getElementById("sidebar-resource-list");
+import ini from "./ini.js?v6.0.0";
+
+const sidebarList = document.getElementById("sidebar-list");
 const pages = document.getElementById("pages");
 
 let idCount = 1;
 
 function setPage(id) {
+  for (const resourceTab of sidebarList.children) {
+    resourceTab.setAttribute("aria-selected", false);
+  }
+
+  const sidebarPage = document.getElementById(`resource-sidebar-${id}`);
+  sidebarPage.setAttribute("aria-selected", true);
+
   const resourcePage = document.getElementById(`resource-page-${id}`);
   if (resourcePage.style.display !== "none") return;
 
@@ -15,13 +23,25 @@ function setPage(id) {
 }
 
 function setTab(id, tabName) {
-  const tab = document.getElementById(`resource-tab-${tabName}-${id}`);
-  const tabs = tab.parentElement;
+  const currentPanel = document.getElementById(`resource-tab-${tabName}-${id}`);
+  const panels = currentPanel.parentElement;
+  const currentTab = document.getElementById(`resource-navbar-${tabName}-${id}`);
+  const tabs = currentTab.parentElement;
 
-  if (tab.style.display !== "none") return;
+  // All panels/tabs
+  for (const panel of panels.children) {
+    panel.style.display = "none";
+  }
 
-  for (const element of tabs.children) element.style.display = "none";
-  tab.style.display = "";
+  for (const tab of tabs.children) {
+    tab.classList.remove("selected");
+    tab.setAttribute("aria-selected", false);
+  }
+
+  // Current panel/tab only
+  currentPanel.style.display = "";
+  currentTab.classList.add("selected");
+  currentTab.setAttribute("aria-selected", true);
 }
 
 function addResource(type) {
@@ -29,12 +49,12 @@ function addResource(type) {
   const name = type.substring(type.indexOf("-") + 1).replace("-", " ");
 
   // Create the sidebar resource button
-  const resourceButton = document.createElement("button");
-  resourceButton.id = `resource-sidebar-${id}`;
-  resourceButton.role = "tab";
-  resourceButton.setAttribute("aria-controls", `resource-page-${id}`);
-  resourceButton.textContent = `Unnamed ${name}`;
-  resourceButton.onclick = () => setPage(id);
+  const sidebarTab = document.createElement("button");
+  sidebarTab.id = `resource-sidebar-${id}`;
+  sidebarTab.role = "tab";
+  sidebarTab.setAttribute("aria-controls", `resource-page-${id}`);
+  sidebarTab.textContent = `Unnamed ${name}`;
+  sidebarTab.onclick = () => setPage(id);
 
   // Create the (hidden for now) resource page
   const pageClone = document.getElementById(`template-${type}`).content.cloneNode(true);
@@ -45,26 +65,27 @@ function addResource(type) {
 
   // Connect the tabs with their navbar buttons
   let first = true;
-  for (const tabButton of page.querySelector(".navbar-tabs").children) {
-    const tabName = tabButton.getAttribute("data-tab");
+  for (const tab of page.querySelector(".tabs").children) {
+    const tabName = tab.getAttribute("data-tab");
 
-    tabButton.id = `resource-navbar-${tabName}-${id}`;
-    tabButton.type = "button";
-    tabButton.setAttribute("aria-controls", `resource-tab-${tabName}-${id}`);
-    tabButton.onclick = () => setTab(id, tabName);
+    tab.id = `resource-navbar-${tabName}-${id}`;
+    tab.type = "button";
+    tab.setAttribute("aria-controls", `resource-tab-${tabName}-${id}`);
+    tab.onclick = () => setTab(id, tabName);
 
-    const tab = page.querySelector(`.content [data-tab="${tabName}"]`);
-    tab.id = `resource-tab-${tabName}-${id}`;
-    tab.setAttribute("aria-labelledby", `resource-navbar-${tabName}-${id}`);
+    const panel = page.querySelector(`.content [data-tab="${tabName}"]`);
+    panel.id = `resource-tab-${tabName}-${id}`;
+    panel.setAttribute("aria-labelledby", `resource-navbar-${tabName}-${id}`);
 
-    if (!first) tab.style.display = "none";
+    panel.style.display = first ? "" : "none";
+    tab.setAttribute("aria-selected", first);
     first = false;
   }
 
   // Connect the labels and information
   for (const option of page.querySelectorAll(".option")) {
     const input = option.querySelector("input, select");
-    const inputId = `option-${input.name}-${id}`;
+    const inputId = `option-${option.getAttribute("data-option")}-${id}`;
     input.id = inputId;
 
     const label = option.querySelector("label");
@@ -76,26 +97,28 @@ function addResource(type) {
       input.setAttribute("aria-describedby", small.id);
     }
 
-    const paragraph = option.querySelector("p");
     const info = option.querySelector(".info");
-    if (info) {
-      paragraph.id = `${inputId}-info`;
-      info.id = `${inputId}-info-toggle`;
-      info.role = "button";
-      info.tabIndex = 0;
-      info.setAttribute("aria-label", "More information");
-      info.setAttribute("aria-controls", paragraph.id);
-      info.setAttribute("aria-expanded", false);
-      info.onclick = () => {
-        paragraph.hidden = !paragraph.hidden;
-        info.setAttribute("aria-expanded", !paragraph.hidden);
+    const infoToggle = option.querySelector(".info-toggle");
+    if (infoToggle) {
+      info.id = `${inputId}-info`;
+      info.hidden = true;
+
+      infoToggle.id = `${inputId}-info-toggle`;
+      infoToggle.type = "button";
+      infoToggle.setAttribute("aria-label", "More information");
+      infoToggle.setAttribute("aria-controls", info.id);
+      infoToggle.setAttribute("aria-expanded", false);
+
+      infoToggle.onclick = () => {
+        info.hidden = !info.hidden;
+        infoToggle.setAttribute("aria-expanded", !info.hidden);
       };
 
-      paragraph.setAttribute("aria-labelledby", info.id);
+      info.setAttribute("aria-labelledby", infoToggle.id);
     }
   }
 
-  sidebarResourceList.appendChild(resourceButton);
+  sidebarList.appendChild(sidebarTab);
   pages.appendChild(page);
 
   setPage(id);
@@ -141,7 +164,6 @@ function updateConditional(form, element, type) {
 
   // Reset the selection if it's disabled/hidden
   if (!matched && element.tagName === "OPTION" && element.selected) {
-    const select = element.closest("select");
     for (const option of select.options) {
       option.selected = option.defaultSelected;
     }
