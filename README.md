@@ -6,9 +6,7 @@ Visit the site here: <https://congent.tygoe.com/>
 
 ## Licenses
 
-This project is licensed under the MIT License. For more information, see [LICENSE](./LICENSE).
-
-Licenses of dependencies are in their respective source files.
+This project is licensed under the AGPL License. For more information, see [LICENSE](./LICENSE).
 
 ### Dependencies
 

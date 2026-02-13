@@ -1,182 +1,67 @@
-<!--
-Reserved id's: resource-(sidebar,page,navbar,tab-<name>)-<id>, option-*-<id>
-
-data-show-when, data-enabled-when show/enable inputs/elemnts in a form
-where option is in current form with option being the name value of any input
-have this syntax with quotes. note some reserved words (not, all, any, contains):
-  comparison {option: value}
-  not condition {not: {option: value}}
-  and condition {all: [{option: value}, {option: value}]}
-  or condition {any: [{option: value}, {option: value}]}
-
-  {all: [{any: [{option: value}, {option: value}]}, {option: value}]}
-  {option: {any: [value, value]}}
-  {option: {all: [value, {not: value}]}}
-
-  contains {option: {contains: value}}
-  nested {option: {contains: {all: [value, value]}}}
--->
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Congent</title>
+    <title>Congent: container configuration generator</title>
     <meta name="description" content="A webpage for generating Podman and Docker container configurations" />
-    <link rel="stylesheet" href="style.css?v0.1" />
-    <script src="ini.js?v6.0.0" type="module"></script>
-    <script src="main.js?v0.1" type="module"></script>
+    <link rel="stylesheet" href="src/assets/root.css" />
+    <style>
+      #app:not([data-v-app]) {
+        display: block;
+      }
+    </style>
   </head>
   <body>
-    <!-- Sidebar -->
-    <aside class="sidebar" aria-label="Resource selection">
-      <!-- General sidebar section -->
-      <section>
-        <h2 class="sidebar-header">General</h2>
-        <form class="sidebar-general" name="add-resource" autocomplete="off">
-          <label for="orchestrator">Orchestrator</label>
-          <select id="orchestrator" name="orchestrator">
-            <option value="podman" selected>Podman</option>
-          </select>
-          <label for="resource-select">Resource</label>
-          <select id="resource-select" name="resource">
-            <option value="" selected disabled hidden>&nbsp;</option>
-            <option value="podman-container" data-show-when='{"orchestrator":"podman"}'>Podman container</option>
-            <option value="docker-container" data-show-when='{"orchestrator":"docker"}'>Docker container</option>
-          </select>
-          <button type="submit">Add resource</button>
-        </form>
-      </section>
-      <!-- Resources sidebar section -->
-      <section>
-        <h2 class="sidebar-header">Resources</h2>
-        <!-- The sidebar entries have role tab, id resource-sidebar-<id> and (aria-)control resource-page-<id> -->
-        <div id="sidebar-list" class="sidebar-list" role="tablist"></div>
-      </section>
-    </aside>
+    <div id="app">
+      <div
+        style="
+          display: grid;
+          grid-template-areas: 'side nav out' 'side main out';
+          grid-template-rows: 75px 1fr;
+          grid-template-columns: 300px 3fr 2fr;
 
-    <!--
-    Resource templates for main section, including navbar and the output tab
-    The resources themselves have the id resource-page-<id> and are aria labelled by resource-sidebar-<id>
-    The tabs have id resource-navbar-<name>-<id> and (aria-)control resource-tab-<name>-<id>
-    -->
+          font-size: 15px;
+          font-family: Arial, Helvetica, sans-serif;
+          color: var(--text-color);
+          background-color: var(--body-color);
 
-    <!-- Dummy template -->
-    <template>
-      <div class="resource">
-        <form>
-          <nav class="navbar" aria-label="Configuration">
-            <h1>No resource selected</h1>
-            <div class="tabs" role="tablist">
-              <button role="tab" data-tab="general">General</button>
-            </div>
-          </nav>
-          <main class="content">
-            <div role="tabpanel" data-tab="general">
-              <fieldset>
-                <div class="option" data-option="name">
-                  <div>
-                    <label>Name</label>
-                    <button class="info-toggle">&#9432;</button>
-                  </div>
-                  <input type="text" />
-                  <small>Short description</small>
-                  <p class="info">Longer paragraph of information</p>
-                </div>
-              </fieldset>
-            </div>
-          </main>
-          <section class="output">
-            <h2 class="sidebar-header">Output</h2>
-            <div>
-              <div class="output-options">
-                <label for="output-type">Output type</label>
-                <select id="output-type">
-                  <option></option>
-                </select>
-              </div>
-              <output>
-                <pre></pre>
-              </output>
-            </div>
-          </section>
-        </form>
-      </div>
-    </template>
-
-    <template id="template-podman-container">
-      <div class="resource" role="tabpanel">
-        <form autocomplete="off">
-          <nav aria-label="Configuration">
-            <h1>Unnamed container</h1>
-            <div class="tabs" role="tablist">
-              <button role="tab" data-tab="general">General</button>
-              <button role="tab" data-tab="networking">Networking</button>
-            </div>
-          </nav>
-          <main class="content">
-            <div role="tabpanel" data-tab="general">
-              <fieldset>
-                <div class="option" data-option="name">
-                  <div>
-                    <label>Name</label>
-                    <button class="info-toggle">&#9432;</button>
-                  </div>
-                  <input type="text" />
-                  <small>The container name</small>
-                  <p class="info">The container name is used to reference the container</p>
-                </div>
-                <div class="option" data-option="image">
-                  <div>
-                    <label data-for="image">Image / FQIN</label>
-                  </div>
-                  <input type="text" />
-                </div>
-              </fieldset>
-              <fieldset></fieldset>
-            </div>
-            <div role="tabpanel" data-tab="networking">Networking</div>
-          </main>
-
-          <section class="output">
-            <h2 class="sidebar-header">Output</h2>
-            <div>
-              <div class="output-options">
-                <label for="output-type">Output type</label>
-                <select id="output-type">
-                  <option>Quadlets</option>
-                </select>
-              </div>
-              <output>
-                <pre></pre>
-              </output>
-            </div>
-          </section>
-        </form>
-      </div>
-    </template>
-
-    <!-- Main section with empty page -->
-    <div id="pages">
-      <div class="resource">
-        <form>
-          <nav class="navbar">
-            <h1>No resource selected</h1>
-          </nav>
-          <main class="content">
-            <div style="display: block">
-              <p>Add or select a resource in the sidebar to get started.</p>
-              <p>
-                For more information or filing issues, visit
-                <a href="https://github.com/tygoee/congent" style="text-decoration: underline">the GitHub repository</a>
-              </p>
-            </div>
-          </main>
-          <section class="output">
-            <h2 class="sidebar-header">Output</h2>
-          </section>
-        </form>
+          height: 100vh;
+        "
+      >
+        <aside
+          style="
+            grid-area: side;
+            border-right: 2px solid var(--layout-border-color);
+            background-color: var(--layout-color);
+          "
+        ></aside>
+        <nav
+          style="
+            grid-area: nav;
+            border-bottom: 2px solid var(--layout-border-color);
+            background-color: var(--layout-color);
+          "
+        ></nav>
+        <main style="grid-area: main; padding: 20px">
+          <noscript>
+            <p>Javascript is disabled. Please enable it to use this site.</p>
+            <p>
+              For more information or filing issues, visit
+              <a href="https://github.com/tygoee/congent" style="text-decoration: underline">the GitHub repository</a>
+            </p>
+          </noscript>
+        </main>
+        <section
+          style="
+            grid-area: out;
+            border-left: 2px solid var(--layout-border-color);
+            background-color: var(--layout-color);
+          "
+        ></section>
       </div>
     </div>
+
+    <script type="module" src="src/main.ts"></script>
   </body>
 </html>
