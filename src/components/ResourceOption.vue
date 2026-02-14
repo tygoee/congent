@@ -60,7 +60,7 @@ const showInfo = ref<boolean>(false);
   select,
   input {
     align-self: start;
-    border: 2px solid var(--body-border-color);
+    border: 2px solid var(--body-color-secondary);
   }
 
   .label {
@@ -77,7 +77,7 @@ const showInfo = ref<boolean>(false);
   }
 
   .description {
-    color: var(--dimmed-text-color);
+    color: var(--text-color-dimmed);
     font-style: italic;
   }
 

@@ -82,7 +82,7 @@ function addResource(type?: PageType) {
 .sidebar {
   display: grid;
   grid-template-rows: auto 1fr;
-  border-right: 2px solid var(--layout-border-color);
+  border-right: 2px solid var(--layout-color-secondary);
 
   background-color: var(--layout-color);
 }
@@ -105,7 +105,7 @@ function addResource(type?: PageType) {
 
 .sidebar-general button,
 .sidebar-general select {
-  border: 2px solid var(--layout-border-color);
+  border: 2px solid var(--layout-color-secondary);
 }
 
 .sidebar-general button[type='submit'] {
@@ -118,7 +118,7 @@ function addResource(type?: PageType) {
   padding-left: 10px;
   height: 25px;
 
-  background-color: var(--layout-border-color);
+  background-color: var(--layout-color-secondary);
 }
 
 .sidebar-list {

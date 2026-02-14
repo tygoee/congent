@@ -8,10 +8,6 @@ Visit the site here: <https://congent.tygoe.com/>
 
 This project is licensed under the AGPL License. For more information, see [LICENSE](./LICENSE).
 
-### Dependencies
-
-- npm/ini: https://github.com/npm/ini
-
 ## Quadlet source code
 
 - Source: <https://github.com/containers/podman/tree/main/pkg/systemd/quadlet>

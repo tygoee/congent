@@ -78,7 +78,7 @@ const selectedTab = ref<string | undefined>(Object.keys(tabs)[0]);
   display: flex;
   flex-direction: column;
 
-  border-bottom: 2px solid var(--layout-border-color);
+  border-bottom: 2px solid var(--layout-color-secondary);
   background-color: var(--layout-color);
 }
 
@@ -111,7 +111,7 @@ const selectedTab = ref<string | undefined>(Object.keys(tabs)[0]);
 
 .content fieldset {
   flex: 1;
-  border: 2px solid var(--body-border-color);
+  border: 2px solid var(--body-color-secondary);
 }
 
 .output {
@@ -120,7 +120,7 @@ const selectedTab = ref<string | undefined>(Object.keys(tabs)[0]);
   grid-template-rows: auto 1fr;
 
   background-color: var(--layout-color);
-  border-left: 2px solid var(--layout-border-color);
+  border-left: 2px solid var(--layout-color-secondary);
 }
 
 /* Duplicate with sidebar */

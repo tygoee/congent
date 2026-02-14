@@ -3,9 +3,9 @@
 
   --layout-color: light-dark(#e7e7e7, #181818);
   --body-color: light-dark(#dbdbdb, #242424);
-  --layout-border-color: light-dark(#c3c3c3, #3c3c3c);
-  --body-border-color: light-dark(#ababab, #545454);
-  --dimmed-text-color: light-dark(#5f5f5f, #a0a0a0);
+  --layout-color-secondary: light-dark(#c3c3c3, #3c3c3c);
+  --body-color-secondary: light-dark(#ababab, #545454);
+  --text-color-dimmed: light-dark(#5f5f5f, #a0a0a0);
   --text-color: light-dark(#191919, #e6e6e6);
 }
 

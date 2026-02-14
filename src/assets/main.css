@@ -20,12 +20,12 @@ input {
 
   color: var(--text-color);
   background-color: var(--body-color);
-  border: 2px solid var(--layout-border-color);
+  border: 2px solid var(--layout-color-secondary);
   font-size: 15px;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 button:hover,
 select:hover {
-  background-color: var(--layout-border-color);
+  background-color: var(--layout-color-secondary);
 }

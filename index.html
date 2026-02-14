@@ -6,14 +6,16 @@
     <title>Congent: container configuration generator</title>
     <meta name="description" content="A webpage for generating Podman and Docker container configurations" />
     <link rel="stylesheet" href="src/assets/root.css" />
-    <style>
-      #app:not([data-v-app]) {
-        display: block;
-      }
-    </style>
   </head>
   <body>
-    <div id="app">
+    <div
+      id="app"
+      style="
+        #app:not([data-v-app]) {
+          display: block;
+        }
+      "
+    >
       <div
         style="
           display: grid;
