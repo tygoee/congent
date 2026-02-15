@@ -1,19 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { inject, ref } from 'vue';
 
 const props = defineProps<{
-  id: number;
   option: string;
   name: string;
+  pattern?: string;
+  modelValue?: string;
 }>();
 
 const slots = defineSlots<{
+  invalid: never;
   description: never;
   info: never;
 }>();
 
-const inputId = `option-${props.option}-${props.id}`;
+const emit = defineEmits(['update:modelValue']);
+
+const id = inject<number>('id');
+const inputId = `option-${props.option}-${id}`;
 const showInfo = ref<boolean>(false);
+
+function changeValue(value: string) {
+  if (typeof props.pattern === 'undefined') {
+    emit('update:modelValue', value);
+    return;
+  }
+
+  if (value === '' || new RegExp(`^${props.pattern}$`).test(value)) emit('update:modelValue', value);
+}
 </script>
 
 <template>
@@ -33,7 +47,22 @@ const showInfo = ref<boolean>(false);
         &#9432;
       </button>
     </div>
-    <input :id="inputId" type="text" :aria-describedby="slots.description ? `${inputId}-description` : undefined" />
+    <div class="inputs">
+      <input
+        :id="inputId"
+        type="text"
+        :value="props.modelValue"
+        size="1"
+        :pattern="props.pattern"
+        :aria-describedby="slots.description ? `${inputId}-description` : undefined"
+        @input="changeValue(($event.target as HTMLInputElement).value)"
+      />
+    </div>
+    <small class="invalid-description"
+      ><slot name="invalid"
+        >Must start with a letter or number, and only contain letters, numbers, underscores, dots and hyphens</slot
+      ></small
+    >
     <small :id="`${inputId}-description`" class="description" v-if="slots.description">
       <slot name="description"></slot>
     </small>
@@ -74,6 +103,29 @@ const showInfo = ref<boolean>(false);
     border: none;
     cursor: pointer;
     background-color: var(--body-color);
+  }
+
+  .inputs {
+    display: flex;
+    gap: 5px;
+  }
+
+  .inputs * {
+    flex: 1;
+  }
+
+  .inputs:has(input:invalid)::after {
+    content: '\26A0'; /* &#9888 */
+  }
+
+  .invalid-description {
+    display: block;
+    grid-column: 1 / 3;
+    color: red;
+  }
+
+  .inputs:has(input:valid) + .invalid-description {
+    display: none;
   }
 
   .description {

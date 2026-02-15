@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import { pages } from './components/pages';
 
 import ResourceSidebar from './components/ResourceSidebar.vue';
 
-const resources: Resources = reactive({ 0: { id: 0, name: 'No resource selected', type: 'default-page' } });
+const resources = ref<Resource[]>([{ id: 0, type: 'dummy-page', name: '' }]);
 const selectedPage = ref<number>(0);
 </script>
 

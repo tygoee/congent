@@ -5,9 +5,8 @@ declare global {
 
   type Resource = {
     id: number;
-    name: string;
     type: PageType;
+    name: string;
+    placeholder?: string;
   };
-
-  type Resources = Record<number, Resource>;
 }

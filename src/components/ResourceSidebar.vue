@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import type { PageType } from './pages';
 
 const props = defineProps<{
-  resources: Resources;
+  resources: Resource[];
 }>();
 
 const selectedPage = defineModel<number>({ required: true });
@@ -22,9 +22,8 @@ function addResource(type?: PageType) {
   if (type === undefined) return;
   const resources = props.resources;
 
-  // The name after the dash (e.g. docker-container becomes container)
-  const placeholder = type.substring(type.indexOf('-') + 1).replace('-', ' ');
-  resources[++idCount] = { id: idCount, name: `Unnamed ${placeholder}`, type: type };
+  // The name will get a placeholder and can be changed in the page itself
+  resources.push({ id: ++idCount, type: type, name: '' });
 }
 </script>
 
@@ -60,17 +59,17 @@ function addResource(type?: PageType) {
     <section>
       <h2 class="sidebar-header">Resources</h2>
       <div id="sidebar-list" class="sidebar-list" role="tablist">
-        <template v-for="resource in Object.values(resources)" :key="resource.id">
+        <template v-for="resource in resources" :key="resource.id">
           <button
             :id="`resource-sidebar-${resource.id}`"
             :class="{ selected: resource.id === selectedPage }"
             role="tab"
             :aria-controls="`resource-page-${resource.id}`"
             :aria-selected="resource.id === selectedPage"
-            v-if="resource.id !== 0"
+            v-if="resource.placeholder"
             @click="selectedPage = resource.id"
           >
-            {{ resource.name }}
+            {{ resource.name || resource.placeholder }}
           </button>
         </template>
       </div>
@@ -134,5 +133,9 @@ function addResource(type?: PageType) {
   height: 25px;
   border: none;
   outline-offset: -3px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

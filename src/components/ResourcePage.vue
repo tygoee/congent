@@ -21,7 +21,9 @@ const selectedTab = ref<string | undefined>(Object.keys(tabs)[0]);
   <div :id="`resource-page-${resource.id}`" class="resource">
     <form>
       <nav class="navbar" aria-label="Configuration">
-        <h1>{{ resource.name }}</h1>
+        <div>
+          <h1>{{ resource.name || resource.placeholder }}</h1>
+        </div>
         <div class="tabs" role="tablist" v-if="props.tabs">
           <button
             :id="`resource-navbar-${resource.id}`"
@@ -69,7 +71,7 @@ const selectedTab = ref<string | undefined>(Object.keys(tabs)[0]);
     'navbar output'
     'content output';
   grid-template-rows: 75px 1fr;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   height: 100vh;
 }
 
@@ -89,7 +91,13 @@ const selectedTab = ref<string | undefined>(Object.keys(tabs)[0]);
 
   align-items: center;
   gap: 10px;
-  padding-left: 20px;
+  padding: 0px 20px;
+}
+
+.navbar h1 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .content {
